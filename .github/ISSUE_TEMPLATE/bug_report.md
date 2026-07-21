@@ -42,12 +42,3 @@ _Add any other relevant details about the issue._
 
 ## **Log File (If Applicable)**  
 _If the issue involves a crash, provide the full log file from start to end._
-
-**Expected behavior**
-A clear and concise description of what you expected to happen.
-
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
-
-**Additional context**
-Add any other context about the problem here.
