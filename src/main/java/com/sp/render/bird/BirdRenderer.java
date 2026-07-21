@@ -6,7 +6,6 @@ import com.sp.SPBRevamped;
 import com.sp.compat.modmenu.ConfigStuff;
 import com.sp.mixininterfaces.RenderIndirectExtension;
 import foundry.veil.api.client.render.VeilRenderSystem;
-import foundry.veil.api.client.render.VeilRenderer;
 import foundry.veil.api.client.render.framebuffer.AdvancedFbo;
 import foundry.veil.api.client.render.framebuffer.VeilFramebuffers;
 import foundry.veil.api.client.render.shader.program.ShaderProgram;
@@ -16,26 +15,22 @@ import net.minecraft.client.render.Tessellator;
 import net.minecraft.client.render.VertexFormat;
 import net.minecraft.client.render.VertexFormatElement;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.math.random.Random;
-import org.joml.Vector4fc;
+import org.joml.Vector3f;
+import org.joml.Vector3fc;
 import org.lwjgl.opengl.GL43;
 
 import java.nio.ByteBuffer;
+import java.util.List;
 
 import static net.minecraft.client.render.VertexFormats.NORMAL_ELEMENT;
 import static net.minecraft.client.render.VertexFormats.POSITION_ELEMENT;
-import static net.minecraft.util.math.MathHelper.floor;
 import static org.lwjgl.opengl.GL15C.glBindBuffer;
 import static org.lwjgl.opengl.GL15C.glGenBuffers;
 import static org.lwjgl.opengl.GL42C.*;
-import static org.lwjgl.opengl.GL43C.GL_SHADER_STORAGE_BUFFER;
-import static org.lwjgl.opengl.GL43C.glDispatchCompute;
 
 public class BirdRenderer {
     private static final Identifier shaderPath = new Identifier(SPBRevamped.MOD_ID, "bird/bird");
-    public static final Identifier computeShaderPath = new Identifier(SPBRevamped.MOD_ID, "bird/compute/positions");
 
-    private final int positionsVbo;
     private final int indirectVbo;
 
     private int lastBirdCount;
@@ -71,8 +66,7 @@ public class BirdRenderer {
         VertexBuffer.unbind();
 
 
-        //*Initialize Grass Positions buffer and Indirect buffer struct
-        this.positionsVbo = glGenBuffers();
+        //*Initialize Indirect buffer struct
         this.indirectVbo = glGenBuffers();
         this.updateBuffers(true);
     }
@@ -107,15 +101,16 @@ public class BirdRenderer {
         //*Update the Buffers
         this.updateBuffers(false);
 
-        //*Use a compute shader to get all visible grass positions (Frustum Culling)
-        this.computeBirdPositions();
-
-
         ShaderProgram shader = VeilRenderSystem.setShader(shaderPath);
         if (shader == null) return;
 
         shader.setFloat("GameTime", RenderSystem.getShaderGameTime());
         shader.setInt("NumOfInstances", ConfigStuff.birdQuality.getBirdCount());
+
+        List<Vector3f> centers = FlockManager.getFlockCenters().stream()
+                .map(vec3d -> new Vector3f((float) vec3d.x, (float) vec3d.y, (float) vec3d.z)).toList();
+        shader.setVectors("FlockCenters", centers.toArray(new Vector3fc[0]));
+        shader.setInt("FlockAmount", ConfigStuff.birdQuality.getFlockCount());
 
 //        int prevTexture = RenderSystem.getShaderTexture(0);
         shader.applyShaderSamplers(0);
@@ -124,7 +119,6 @@ public class BirdRenderer {
         //*glDrawElementsIndirect needs the indirect fbo
         //*REMEMBER the int struct goes HERE and not directly into the method like I thought before
         glBindBuffer(GL43.GL_DRAW_INDIRECT_BUFFER, this.indirectVbo);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, this.positionsVbo);
         shader.bind();
 
         ((RenderIndirectExtension) this.vertexBuffer).spb_revamped_1_20_1$drawIndirect();
@@ -132,7 +126,6 @@ public class BirdRenderer {
         ShaderProgram.unbind();
         shader.clearSamplers();
 
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
         glBindBuffer(GL43.GL_DRAW_INDIRECT_BUFFER, 0);
         VertexBuffer.unbind();
 //        RenderSystem.setShaderTexture(0, prevTexture);
@@ -145,40 +138,6 @@ public class BirdRenderer {
         int currentBirdCount = ConfigStuff.birdQuality.getBirdCount();
         int currentFlockCount = ConfigStuff.birdQuality.getFlockCount();
         boolean configChange = currentBirdCount != this.lastBirdCount || currentFlockCount != this.lastFlockCount;
-
-        if (configChange || init) {
-            //*Update positions buffer size
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, this.positionsVbo);
-            glBufferData(GL_SHADER_STORAGE_BUFFER, (long) 6 * ((long) currentBirdCount) * Float.BYTES, GL_DYNAMIC_DRAW);
-
-            ByteBuffer initialData = glMapBufferRange(
-                    GL_SHADER_STORAGE_BUFFER, 0, (long) 6 * ((long) currentBirdCount) * Float.BYTES,
-                    GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT
-            );
-
-            if (initialData != null) {
-                Random random = Random.create();
-
-                for (int i = 0; i < currentBirdCount; i++) {
-//                    initialData.putFloat((float) (FlockManager.getFlockCenter((i) % ConfigStuff.birdQuality.getFlockCount()).x + (random.nextFloat() * 10)));
-//                    initialData.putFloat((float) (FlockManager.getFlockCenter((i) % ConfigStuff.birdQuality.getFlockCount()).y + (random.nextFloat() * 10)));
-//                    initialData.putFloat((float) (FlockManager.getFlockCenter((i) % ConfigStuff.birdQuality.getFlockCount()).z + (random.nextFloat() * 10)));
-
-                    initialData.putFloat(0);
-                    initialData.putFloat(100);
-                    initialData.putFloat(0);
-
-                    initialData.putFloat(0);
-                    initialData.putFloat(1);
-                    initialData.putFloat(0);
-                }
-
-                initialData.flip();
-                glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-            }
-
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-        }
 
         //*Update Indirect buffer instance count
         glBindBuffer(GL_DRAW_INDIRECT_BUFFER, this.indirectVbo);
@@ -202,7 +161,7 @@ public class BirdRenderer {
         if (cmd != null) {
             this.cmd.clear();
             this.cmd.putInt(VeilRenderSystem.getIndexCount(this.vertexBuffer));
-            this.cmd.putInt(0);
+            this.cmd.putInt(currentBirdCount);
             this.cmd.putInt(0);
             this.cmd.putInt(0);
             this.cmd.putInt(0);
@@ -217,51 +176,6 @@ public class BirdRenderer {
             this.lastBirdCount = currentBirdCount;
             this.lastFlockCount = currentFlockCount;
         }
-    }
-
-    private void computeBirdPositions() {
-        ShaderProgram shader = VeilRenderSystem.setShader(computeShaderPath);
-        ShaderProgram fragShader = VeilRenderSystem.setShader(shaderPath);
-        if (shader == null) return;
-        if (fragShader == null) return;
-        int numOfInst = ConfigStuff.birdQuality.getBirdCount();
-
-        if (shader.isCompute()) {
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, this.positionsVbo);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, this.indirectVbo);
-
-            shader.setInt("NumOfInstances", numOfInst);
-
-            Vector4fc[] planes = VeilRenderer.getCullingFrustum().getPlanes();
-            float[] values = new float[4 * planes.length];
-            for (int i = 0; i < planes.length; i++) {
-                Vector4fc plane = planes[i];
-                values[i * 4] = plane.x();
-                values[i * 4 + 1] = plane.y();
-                values[i * 4 + 2] = plane.z();
-                values[i * 4 + 3] = plane.w();
-            }
-            shader.setFloats("FrustumPlanes", values);
-
-            shader.bind();
-
-            //*Eight local groups
-            int grass = floor(Math.sqrt((float) ConfigStuff.birdQuality.getBirdCount()) / 8);
-            int x = Math.min(grass, VeilRenderSystem.maxComputeWorkGroupCountX());
-            int y = Math.min(grass, VeilRenderSystem.maxComputeWorkGroupCountY());
-
-            glDispatchCompute(x, y, 1);
-            glMemoryBarrier(GL_ALL_BARRIER_BITS);
-
-
-            ShaderProgram.unbind();
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, 0);
-        }
-
-        fragShader.setInt("NumOfInstances", numOfInst);
-
-        ShaderProgram.unbind();
     }
 
     private void createGrassModel(BufferBuilder bufferBuilder) {
@@ -287,7 +201,6 @@ public class BirdRenderer {
     }
 
     public void close() {
-        glDeleteBuffers(this.positionsVbo);
         glDeleteBuffers(this.indirectVbo);
         glUnmapBuffer(GL_DRAW_INDIRECT_BUFFER);
         this.cmd.clear();

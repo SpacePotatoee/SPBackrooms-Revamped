@@ -9,7 +9,7 @@ layout(location = 1) in vec4 Color;
 layout(location = 2) in vec2 UV0;
 layout(location = 3) in ivec2 UV2;
 layout(location = 4) in vec3 Normal;
-layout(location = 6) in int BlockMaterial1;
+layout(location = 6) in float BlockMaterial1;
 
 uniform sampler2D Sampler2;
 
@@ -24,7 +24,7 @@ out vec2 texCoord0;
 out vec2 texCoord2;
 out vec4 lightmapColor;
 out vec3 normal;
-flat out int blockMaterial;
+flat out float blockMaterial;
 out vec3 localPos;
 out vec3 chunkOffset;
 

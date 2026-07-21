@@ -30,16 +30,12 @@ import static net.minecraft.util.math.MathHelper.sqrt;
 import static org.lwjgl.opengl.GL15C.glBindBuffer;
 import static org.lwjgl.opengl.GL15C.glGenBuffers;
 import static org.lwjgl.opengl.GL42C.*;
-import static org.lwjgl.opengl.GL43C.GL_SHADER_STORAGE_BUFFER;
-import static org.lwjgl.opengl.GL43C.glDispatchCompute;
 
 public class GrassRenderer {
     VertexBuffer vertexBuffer;
     private static final Identifier shaderPath = new Identifier(SPBRevamped.MOD_ID, "grass/grass");
     private static final Identifier windTexture = new Identifier(SPBRevamped.MOD_ID, "textures/shaders/puddle_noise.png");
 
-    private static final Identifier computeShaderPath = new Identifier(SPBRevamped.MOD_ID, "grass/compute/positions");
-    private final int positionsVbo;
     private final int indirectVbo;
 
     private int lastGrassCount;
@@ -79,8 +75,7 @@ public class GrassRenderer {
         VertexBuffer.unbind();
 
 
-        //*Initialize Grass Positions buffer and Indirect buffer struct
-        this.positionsVbo = glGenBuffers();
+        //*Initialize Indirect buffer struct
         this.indirectVbo = glGenBuffers();
         this.updateBuffers(true);
     }
@@ -117,11 +112,6 @@ public class GrassRenderer {
         //*Update the Buffers
         this.updateBuffers(false);
 
-        //*Use a compute shader to get all visible grass positions (Frustum Culling)
-        this.computeGrassPositions();
-
-
-
         ShaderProgram shader = VeilRenderSystem.setShader(shaderPath);
         if(shader == null) return;
 
@@ -129,6 +119,7 @@ public class GrassRenderer {
         shader.setInt("NumOfInstances", floor(sqrt(ConfigStuff.grassQuality.getCount())));
         shader.setFloat("grassHeight", getGrassHeight());
         shader.setFloat("density", ConfigStuff.grassQuality.getDensity());
+        shader.setFloats("FrustumPlanes", getFrustumPlanes());
 
 //        int prevTexture = RenderSystem.getShaderTexture(0);
         RenderSystem.setShaderTexture(0, windTexture);
@@ -139,7 +130,6 @@ public class GrassRenderer {
         //*glDrawElementsIndirect needs the indirect fbo
         //*REMEMBER the int struct goes HERE and not directly into the method like I thought before
         glBindBuffer(GL43.GL_DRAW_INDIRECT_BUFFER, this.indirectVbo);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, this.positionsVbo);
         shader.bind();
 
         ((RenderIndirectExtension)this.vertexBuffer).spb_revamped_1_20_1$drawIndirect();
@@ -147,7 +137,6 @@ public class GrassRenderer {
         ShaderProgram.unbind();
         shader.clearSamplers();
 
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
         glBindBuffer(GL43.GL_DRAW_INDIRECT_BUFFER, 0);
         VertexBuffer.unbind();
 //        RenderSystem.setShaderTexture(0, prevTexture);
@@ -163,13 +152,6 @@ public class GrassRenderer {
         boolean countChange = currentGrassCount != this.lastGrassCount;
         boolean resolutionChange = currentMeshResolution != this.lastMeshResolution;
         boolean heightChange = currentHeight != this.lastHeight;
-
-        if(countChange) {
-            //*Update positions buffer size
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, this.positionsVbo);
-            glBufferData(GL_SHADER_STORAGE_BUFFER, (long) 4 * ((long) currentGrassCount) * Float.BYTES, GL_DYNAMIC_DRAW);
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-        }
 
         //*Update Indirect buffer instance count
         glBindBuffer(GL_DRAW_INDIRECT_BUFFER, this.indirectVbo);
@@ -191,9 +173,14 @@ public class GrassRenderer {
             *uint baseInstance;
         */
         if(cmd != null) {
+            //*Apple's OpenGL 4.1 has no compute shaders, so nothing can compact the
+            //*visible blades GPU-side. The whole grid is submitted and the vertex
+            //*shader discards culled blades before it does any wind or noise work.
+            int gridSide = floor(sqrt(currentGrassCount));
+
             this.cmd.clear();
             this.cmd.putInt(VeilRenderSystem.getIndexCount(this.vertexBuffer));
-            this.cmd.putInt(0);
+            this.cmd.putInt(gridSide * gridSide);
             this.cmd.putInt(0);
             this.cmd.putInt(0);
             this.cmd.putInt(0);
@@ -210,51 +197,17 @@ public class GrassRenderer {
 
     }
 
-    private void computeGrassPositions() {
-        ShaderProgram shader = VeilRenderSystem.setShader(computeShaderPath);
-        if(shader == null) return;
-
-        if(shader.isCompute()){
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, this.positionsVbo);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, this.indirectVbo);
-
-            int numOfInst = floor(sqrt(ConfigStuff.grassQuality.getCount()));
-            shader.setInt("NumOfInstances", numOfInst);
-            shader.setFloat("density", ConfigStuff.grassQuality.getDensity());
-
-            float maxDist = numOfInst / (ConfigStuff.grassQuality.getDensity() * 1.85f);
-            shader.setFloat("maxDist", maxDist);
-
-            Vector4fc[] planes = VeilRenderer.getCullingFrustum().getPlanes();
-            float[] values = new float[4 * planes.length];
-            for (int i = 0; i < planes.length; i++) {
-                Vector4fc plane = planes[i];
-                values[i * 4] = plane.x();
-                values[i * 4 + 1] = plane.y();
-                values[i * 4 + 2] = plane.z();
-                values[i * 4 + 3] = plane.w();
-            }
-            shader.setFloats("FrustumPlanes", values);
-
-            shader.bind();
-
-            //*Eight local groups
-            int grass = floor(sqrt((float) ConfigStuff.grassQuality.getCount()) / 8);
-            int x = Math.min(grass, VeilRenderSystem.maxComputeWorkGroupCountX());
-            int y = Math.min(grass, VeilRenderSystem.maxComputeWorkGroupCountY());
-
-            glDispatchCompute(x, y, 1);
-            glMemoryBarrier(GL_ALL_BARRIER_BITS);
-
-
-            ShaderProgram.unbind();
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, 0);
+    private static float[] getFrustumPlanes() {
+        Vector4fc[] planes = VeilRenderer.getCullingFrustum().getPlanes();
+        float[] values = new float[4 * planes.length];
+        for (int i = 0; i < planes.length; i++) {
+            Vector4fc plane = planes[i];
+            values[i * 4] = plane.x();
+            values[i * 4 + 1] = plane.y();
+            values[i * 4 + 2] = plane.z();
+            values[i * 4 + 3] = plane.w();
         }
-
-        ShaderProgram.unbind();
-
-
+        return values;
     }
 
     private void createGrassModel(BufferBuilder bufferBuilder) {
@@ -276,7 +229,6 @@ public class GrassRenderer {
     }
 
     public void close(){
-        glDeleteBuffers(this.positionsVbo);
         glDeleteBuffers(this.indirectVbo);
         glUnmapBuffer(GL_DRAW_INDIRECT_BUFFER);
         this.cmd.clear();

@@ -20,8 +20,8 @@ in vec2 WorldFacePos[];
 in vec3 WorldPos[];
 in vec3 position[];
 in float zoom[];
-flat in int resolution[];
-flat in int enableHeight[];
+flat in float resolution[];
+flat in float enableHeight[];
 in float depth[];
 
 out vec4 vertexColor;
@@ -34,8 +34,8 @@ out vec2 worldFacePos;
 out vec3 worldPos;
 out vec3 Pos;
 out float Zoom;
-flat out int Resolution;
-flat out int Enableheight;
+flat out float Resolution;
+flat out float Enableheight;
 out float Depth;
 out mat3 TBN;
 

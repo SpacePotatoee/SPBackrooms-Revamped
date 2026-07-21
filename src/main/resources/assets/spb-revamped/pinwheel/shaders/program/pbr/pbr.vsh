@@ -7,8 +7,8 @@ layout(location = 2) in vec2 UV0;
 layout(location = 3) in ivec2 UV2;
 layout(location = 4) in vec3 Normal;
 layout(location = 5) in float Zoom;
-layout(location = 6) in int Resolution;
-layout(location = 7) in int EnableHeight;
+layout(location = 6) in float Resolution;
+layout(location = 7) in float EnableHeight;
 layout(location = 8) in float DepthMultiplier;
 
 uniform sampler2D Sampler2;
@@ -27,8 +27,8 @@ out vec2 WorldFacePos;
 out vec3 WorldPos;
 out vec3 position;
 out float zoom;
-flat out int resolution;
-flat out int enableHeight;
+flat out float resolution;
+flat out float enableHeight;
 out float depth;
 
 void main() {

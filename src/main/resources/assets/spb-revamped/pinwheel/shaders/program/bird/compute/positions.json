@@ -1,7 +1,0 @@
-{
-  "compute": "spb-revamped:bird/compute/positions",
-  "definitions": [
-    "INFINITE_FIELD",
-    "LEVEL324"
-  ]
-}

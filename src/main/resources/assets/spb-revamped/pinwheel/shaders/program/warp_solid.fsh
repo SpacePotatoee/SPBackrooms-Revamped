@@ -64,7 +64,7 @@ in vec2 texCoord0;
 in vec2 texCoord2;
 in vec4 lightmapColor;
 in vec3 normal;
-flat in int blockMaterial;
+flat in float blockMaterial;
 in vec3 localPos;
 in vec3 chunkOffset;
 
@@ -116,8 +116,8 @@ void main() {
 
 
     int Mat = BLOCK_SOLID;
-    if(blockMaterial != -1) {
-        Mat = blockMaterial;
+    if(blockMaterial > -0.5) {
+        Mat = int(blockMaterial + 0.5);
     }
 
     vec3 materialNormal = normal;

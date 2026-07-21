@@ -22,8 +22,8 @@ in vec3 normal;
 in vec3 worldPos;
 in vec3 Pos;
 in float Zoom;
-flat in int Resolution;
-flat in int Enableheight;
+flat in float Resolution;
+flat in float Enableheight;
 in float Depth;
 in mat3 TBN;
 
@@ -35,7 +35,7 @@ void main() {
     float dist = 0.0;
     vec3 repWorldPos = mod(worldPos, Zoom) *1 / Zoom;
     //If height is disabled
-    if(Enableheight == 0){
+    if(Enableheight < 0.5){
 
         vec2 faceUV = getAccurateUV(repWorldPos, normal);
 

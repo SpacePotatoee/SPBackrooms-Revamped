@@ -243,13 +243,7 @@ public class SPBRevampedClient implements ClientModInitializer {
 
 
                         if (ConfigStuff.birdQuality != BirdQuality.DISABLED) {
-                            ShaderProgram shader = VeilRenderSystem.renderer().getShaderManager().getShader(BirdRenderer.computeShaderPath);
-                            if (shader != null) {
-                                List<Vector3f> vector3fcs = FlockManager.getFlockCenters().stream().map((vec3d -> new Vector3f((float) vec3d.x, (float) vec3d.y, (float) vec3d.z))).toList();
-                                shader.setVectors("FlockCenters", vector3fcs.toArray(new Vector3fc[0]));
-                                shader.setInt("FlockAmount", ConfigStuff.birdQuality.getFlockCount());
-                                this.birdRenderer.render();
-                            }
+                            this.birdRenderer.render();
                         }
                     }
                 } else if (clientWorld.getRegistryKey() == BackroomsLevels.LEVEL324_WORLD_KEY) {
