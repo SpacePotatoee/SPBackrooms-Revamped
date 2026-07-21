@@ -61,13 +61,11 @@ import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.block.entity.BlockEntityRendererFactories;
-import net.minecraft.client.toast.SystemToast;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.resource.ResourceManager;
 import net.minecraft.resource.ResourceType;
-import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
@@ -192,11 +190,6 @@ public class SPBRevampedClient implements ClientModInitializer {
                 PbrRegistry.registerPBR(ModBlocks.PAVEMENT,          new PbrRegistry.PbrMaterial(true, 0.37f,8.0f,   1024));
 
                 BlockIdMap.init = false;
-
-                if (System.getProperty("os.name").toLowerCase().contains("mac")) {
-                    SPBRevamped.LOGGER.error("This mod is not compatible with MacOS. Please use Windows or Linux (wayland).");
-                    MinecraftClient.getInstance().getToastManager().add(new SystemToast(SystemToast.Type.UNSECURE_SERVER_WARNING, Text.of("Potential Incompatibility found"), Text.of("This mod is not compatible with MacOS. Please use Windows or Linux (wayland).")));
-                }
             }
         });
 
@@ -243,13 +236,7 @@ public class SPBRevampedClient implements ClientModInitializer {
 
 
                         if (ConfigStuff.birdQuality != BirdQuality.DISABLED) {
-                            ShaderProgram shader = VeilRenderSystem.renderer().getShaderManager().getShader(BirdRenderer.computeShaderPath);
-                            if (shader != null) {
-                                List<Vector3f> vector3fcs = FlockManager.getFlockCenters().stream().map((vec3d -> new Vector3f((float) vec3d.x, (float) vec3d.y, (float) vec3d.z))).toList();
-                                shader.setVectors("FlockCenters", vector3fcs.toArray(new Vector3fc[0]));
-                                shader.setInt("FlockAmount", ConfigStuff.birdQuality.getFlockCount());
-                                this.birdRenderer.render();
-                            }
+                            this.birdRenderer.render();
                         }
                     }
                 } else if (clientWorld.getRegistryKey() == BackroomsLevels.LEVEL324_WORLD_KEY) {

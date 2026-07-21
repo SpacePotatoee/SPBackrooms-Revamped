@@ -65,7 +65,7 @@ public abstract class BufferBuilderMixin implements BlockMaterial {
 
             //Normal Block
             if(currentFormat == com.sp.render.VertexFormats.BLOCKS) {
-                this.buffer.putInt(this.elementOffset, BlockIdMap.getBlockID(this.currentBlock));
+                this.putFloat(0, BlockIdMap.getBlockID(this.currentBlock));
                 this.nextElement();
             }
 
@@ -79,10 +79,10 @@ public abstract class BufferBuilderMixin implements BlockMaterial {
                 this.putFloat(0, material.zoom());
                 this.nextElement();
 
-                this.putInt(0, material.textureResolution());
+                this.putFloat(0, material.textureResolution());
                 this.nextElement();
 
-                this.putInt(0, material.enableHeight() ? 1 : 0);
+                this.putFloat(0, material.enableHeight() ? 1.0F : 0.0F);
                 this.nextElement();
 
                 this.putFloat(0, material.depthMultiplier());

@@ -1,19 +1,27 @@
-#version 460
+#version 410 core
 #include veil:camera
 
 layout(location = 0) in vec3 Position;
 layout(location = 1) in vec3 Normal;
 
-
-struct BirdData {
-    vec3 position;
-    vec3 rotation;
-};
-
-layout (std430, binding = 0) buffer BirdBuffer {
-    BirdData birds[];
-} birdBuffer;
 uniform float GameTime;
+uniform vec3 FlockCenters[14];
+uniform int FlockAmount;
+
+uint triple32(uint x) {
+    x ^= x >> 17;
+    x *= 0xed5ad4bbU;
+    x ^= x >> 11;
+    x *= 0xac4c1b51U;
+    x ^= x >> 15;
+    x *= 0x31848babU;
+    x ^= x >> 14;
+    return x;
+}
+
+float hash(uint x) {
+    return float(triple32(x)) / float(0xffffffffU);
+}
 
 out vec3 localPos;
 out vec3 normal;
@@ -78,8 +86,42 @@ void main() {
 
     vec3 cameraPos = VeilCamera.CameraPosition;
 
-    vec3 rotation = birdBuffer.birds[gl_InstanceID].rotation;
-    vec3 position = birdBuffer.birds[gl_InstanceID].position;
+    uint id = uint(gl_InstanceID);
+    float h0 = hash(id * 3u + 1u);
+    float h1 = hash(id * 7u + 13u);
+    float h2 = hash(id * 101u + 7u);
+    float h3 = hash(id * 31u + 3u);
+    float h4 = hash(id * 61u + 29u);
+
+    vec3 center = FlockCenters[FlockAmount > 0 ? gl_InstanceID % FlockAmount : 0];
+
+    float radius = 1.4 + h1 * 2.8;
+    float bob = 1.0 + h3 * 1.4;
+    float phase = h0 * 6.2831853;
+
+    // Every bird orbits in its own plane. With a shared plane the flock reads as a
+    // flat disc; the tilt is what makes it a ball like the boids simulation produced.
+    float ct = 2.0 * h2 - 1.0;
+    float st = sqrt(max(1.0 - ct * ct, 0.0));
+    float pa = h4 * 6.2831853;
+    vec3 axis = vec3(st * cos(pa), ct, st * sin(pa));
+    vec3 ref = abs(axis.y) > 0.9 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0);
+    vec3 u = normalize(cross(ref, axis));
+    vec3 v = normalize(cross(axis, u));
+
+    // GameTime wraps once per in-game day, so every oscillator runs a whole number of
+    // turns over that period. Fractional rates would snap the flock on the wrap.
+    float T = GameTime * 6.2831853;
+    float turns = floor(38.0 + h2 * 20.0);
+    float t = T * turns + phase;
+    float tb = T * floor(turns * 0.7) + phase;
+
+    vec3 offset = u * cos(t) * radius + v * sin(t) * radius + axis * sin(tb) * bob;
+    offset += vec3(sin(T * 13.0 + phase), cos(T * 11.0 + phase) * 0.4, cos(T * 17.0 + phase)) * 0.6;
+
+    vec3 position = center + offset;
+    vec3 rotation = normalize(-u * sin(t) * radius + v * cos(t) * radius
+                              + axis * cos(tb) * bob * 0.7);
 
     vec3 tempNormal = Normal;
 
