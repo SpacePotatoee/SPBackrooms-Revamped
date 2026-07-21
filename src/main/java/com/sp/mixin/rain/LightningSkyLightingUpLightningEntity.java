@@ -12,7 +12,13 @@ import org.spongepowered.asm.mixin.Mixin;
 public class LightningSkyLightingUpLightningEntity {
     @WrapMethod(method = "tick")
     public void spbrevamped$LightingUpSkyDuringLightningTick(Operation<Void> original) {
+        original.call();
+
         LightningEntity thiz = ((LightningEntity) (Object) this);
+        if (!thiz.getWorld().isClient()) {
+            return;
+        }
+
 
         if (MinecraftClient.getInstance().player != null && MinecraftClient.getInstance().player.getY() > 20) {
             if (thiz.age == 1) {
@@ -22,8 +28,6 @@ public class LightningSkyLightingUpLightningEntity {
             if (thiz.age >= 3) {
                 SPBRevampedClient.isLightning = false;
             }
-
-            original.call();
         } else {
             thiz.kill();
         }
