@@ -89,7 +89,7 @@
   "item.spb-revamped.canned_food.tooltip": "可能變質了",
 
 
-  "spb-revamped.options.fullscreen.resolution": "VHS解析度",
+  "spb-revamped.options.fullscreen.resolution": "VHS 解析度",
 
 
   "spb-revamped.midnightconfig.category.video": "視訊設定",
@@ -102,13 +102,15 @@
   "spb-revamped.midnightconfig.enableSmoothCamera": "啟用平滑視角",
   "spb-revamped.midnightconfig.cameraSmoothing": "視角平滑係數",
   "spb-revamped.midnightconfig.showHands": "顯示主手",
-  "spb-revamped.midnightconfig.useDefaultGUI": "使用Minecraft預設GUI",
+  "spb-revamped.midnightconfig.useDefaultGUI": "使用 Minecraft 預設 GUI",
   "spb-revamped.midnightconfig.enableHint": "啟用加入世界時提示",
-  "spb-revamped.midnightconfig.VhsAspectRatioComment": "若顯示器支援，啟用後可在全螢幕解析度設定中選擇VHS風格的縱橫比",
-  "spb-revamped.midnightconfig.enableVHSAspectRatio": "僅啟用VHS縱橫比",
+  "spb-revamped.midnightconfig.VhsAspectRatioComment": "若顯示器支援，啟用後可在 Minecraft 視訊設定的全螢幕解析度中看到更多選項，帶來更濃厚的 VHS 復古氛圍感",
+  "spb-revamped.midnightconfig.enableVHSAspectRatio": "僅啟用 VHS 縱橫比",
 
-  "spb-revamped.midnightconfig.enableVhsEffect": "啟用VHS特效",
-  "spb-revamped.midnightconfig.VHSDistortionMultiplier": "VHS失真係數",
+  "spb-revamped.midnightconfig.enableVhsEffect": "在主世界啟用 VHS 著色器",
+  "spb-revamped.midnightconfig.enableVhsEffectInTheBackrooms": "在後室啟用 VHS 著色器",
+"spb-revamped.midnightconfig.enableVhsEffectInTheBackrooms.tooltip": "不建議關閉此項，這會嚴重破壞遊戲體驗與氛圍，該功能本身還存在缺陷。\n僅當你的電腦無法正常渲染本模組時再關閉",
+  "spb-revamped.midnightconfig.VHSDistortionMultiplier": "VHS 失真係數",
   "spb-revamped.midnightconfig.lookRollMultiplier": "視角傾斜係數",
   "spb-revamped.midnightconfig.strafeRollMultiplier": "平移傾斜係數",
   "spb-revamped.midnightconfig.lightRenderDistance": "光照渲染距離（方塊）",
@@ -128,9 +130,16 @@
   "spb-revamped.midnightconfig.enum.GrassQuality.HIGH": "高",
   "spb-revamped.midnightconfig.enum.GrassQuality.ULTRA": "極致",
 
+  "spb-revamped.midnightconfig.birdQuality": "鳥類品質",
+  "spb-revamped.midnightconfig.enum.BirdQuality.LOW": "低",
+  "spb-revamped.enum.BirdQuality.MEDIUM": "中",
+  "spb-revamped.midnightconfig.enum.BirdQuality.HIGH": "高",
+  "spb-revamped.midnightconfig.enum.BirdQuality.ULTRA": "極致",
+  "spb-revamped.midnightconfig.enum.BirdQuality.DISABLED": "停用",
+
   "spb-revamped.midnightconfig.exitSpawnRadius": "出口生成半徑（方塊）",
 
-  "death.attack.acid": "%1$s 在酸液中燒死了！",
+  "death.attack.acid": "%1$s 被酸液灼燒致死！",
   "death.attack.smiler": "%1$s 被笑靨殺害！",
   "death.attack.skin_walker": "%1$s 被竊皮者殺害！",
 
@@ -150,7 +159,7 @@
 
   "skinwalker.flavor-text.taunt1": "繼續啊",
   "skinwalker.flavor-text.taunt2": "試試呼喚你的朋友（按T）",
-  "skinwalker.flavor-text.taunt3": "如果還不夠明顯的話——你的皮膚已經被偷走了",
+  "skinwalker.flavor-text.taunt3": "如果還不夠明顯的話——你的皮膚已經被竊走了",
   "skinwalker.flavor-text.taunt4": "別犯傻，不要偷偷告訴其他玩家",
 
 
